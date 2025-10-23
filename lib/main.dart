@@ -1,61 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'proveedores/proveedor_autenticacion.dart';
-import 'proveedores/proveedor_concursos.dart';
-import 'proveedores/proveedor_proyectos.dart';
-import 'pantallas/pantalla_inicio_sesion.dart';
-import 'pantallas/pantalla_principal.dart';
+import 'package:proyectos_admin/pantallas/pantalla_verificacion.dart'; 
 
 void main() {
-  runApp(const AdminProyectosApp());
+  runApp(const MyAppVerificacion());
 }
 
-class AdminProyectosApp extends StatelessWidget {
-  const AdminProyectosApp({super.key});
+class MyAppVerificacion extends StatelessWidget {
+  const MyAppVerificacion({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => ProveedorAutenticacion()),
-        ChangeNotifierProvider(create: (_) => ProveedorConcursos()),
-        ChangeNotifierProvider(create: (_) => ProveedorProyectos()),
-      ],
-      child: MaterialApp(
-        title: 'Admin Proyectos EPIS',
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          visualDensity: VisualDensity.adaptivePlatformDensity,
-          appBarTheme: AppBarTheme(
-            backgroundColor: Colors.blue[700],
-            foregroundColor: Colors.white,
-            elevation: 2,
-          ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue[700],
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ),
-        home: PantallaWrapper(),
-        debugShowCheckedModeBanner: false,
-      ),
+    return const MaterialApp(
+      title: 'Test de Verificación',
+      home: PantallaVerificacion(),
+      debugShowCheckedModeBanner: false,
     );
-  }
-}
-
-class PantallaWrapper extends StatelessWidget {
-  const PantallaWrapper({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final authProvider = Provider.of<ProveedorAutenticacion>(context);
-
-    if (authProvider.estaAutenticado) {
-      return const PantallaPrincipal();
-    } else {
-      return const PantallaInicioSesion();
-    }
   }
 }
