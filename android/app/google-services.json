@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "312050044667",
+    "project_id": "concursoepis",
+    "storage_bucket": "concursoepis.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:312050044667:android:56d1db49d3e4865f6dea5e",
+        "android_client_info": {
+          "package_name": "com.epis.concursos"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "312050044667-7jai4i8qipl7fnpep77h175v0e0apkh1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRmLn9G6RtMSyu_wwzvxpSORAWCjwkpcM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "312050044667-7jai4i8qipl7fnpep77h175v0e0apkh1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
