@@ -22,9 +22,10 @@ class _PantallaProyectosConcursoState extends State<PantallaProyectosConcurso> {
   @override
   void initState() {
     super.initState();
+    // Iniciar la escucha de proyectos cuando la pantalla se carga
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<ProveedorProyectos>(context, listen: false)
-          .cargarProyectosPorConcurso(widget.concurso.id);
+      final proveedor = Provider.of<ProveedorProyectos>(context, listen: false);
+      proveedor.escucharProyectosPorConcurso(widget.concurso.id);
     });
   }
 
@@ -355,28 +356,6 @@ class _PantallaProyectosConcursoState extends State<PantallaProyectosConcurso> {
         title: Text('Proyectos - ${widget.concurso.nombre}'),
         backgroundColor: Colors.blue[700],
         foregroundColor: Colors.white,
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'refresh') {
-                Provider.of<ProveedorProyectos>(context, listen: false)
-                    .cargarProyectosPorConcurso(widget.concurso.id);
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'refresh',
-                child: Row(
-                  children: [
-                    Icon(Icons.refresh),
-                    SizedBox(width: 8),
-                    Text('Actualizar'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
       body: Consumer<ProveedorProyectos>(
         builder: (context, proveedor, child) {
@@ -403,7 +382,7 @@ class _PantallaProyectosConcursoState extends State<PantallaProyectosConcurso> {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () => proveedor.cargarProyectosPorConcurso(widget.concurso.id),
+                    onPressed: () => proveedor.escucharProyectosPorConcurso(widget.concurso.id),
                     child: const Text('Reintentar'),
                   ),
                 ],
@@ -506,14 +485,11 @@ class _PantallaProyectosConcursoState extends State<PantallaProyectosConcurso> {
                           ],
                         ),
                       )
-                    : RefreshIndicator(
-                        onRefresh: () => proveedor.cargarProyectosPorConcurso(widget.concurso.id),
-                        child: ListView.builder(
-                          itemCount: proyectosFiltrados.length,
-                          itemBuilder: (context, index) {
-                            return _construirTarjetaProyecto(proyectosFiltrados[index]);
-                          },
-                        ),
+                    : ListView.builder(
+                        itemCount: proyectosFiltrados.length,
+                        itemBuilder: (context, index) {
+                          return _construirTarjetaProyecto(proyectosFiltrados[index]);
+                        },
                       ),
               ),
             ],

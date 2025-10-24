@@ -5,7 +5,7 @@ import '../servicios/servicio_autenticacion.dart';
 class ProveedorAutenticacion extends ChangeNotifier {
   final ServicioAutenticacion _servicioAuth = ServicioAutenticacion();
 
-  Administrador? get administradorActual => _servicioAuth.administradorActual;
+  Administrador? get administradorActual => ServicioAutenticacion.administradorActual;
   bool get estaAutenticado => _servicioAuth.estaAutenticado;
 
   bool _cargando = false;

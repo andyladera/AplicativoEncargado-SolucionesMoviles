@@ -6,8 +6,8 @@ class ServicioAutenticacion {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Administrador? _administradorActual;
-  Administrador? get administradorActual => _administradorActual;
+  static Administrador? _administradorActual;
+  static Administrador? get administradorActual => _administradorActual;
 
   Future<bool> registrarAdministrador({
     required String nombres,
@@ -83,5 +83,5 @@ class ServicioAutenticacion {
     _administradorActual = null;
   }
 
-  bool get estaAutenticado => _firebaseAuth.currentUser != null;
+  bool get estaAutenticado => _firebaseAuth.currentUser != null && _administradorActual != null;
 }

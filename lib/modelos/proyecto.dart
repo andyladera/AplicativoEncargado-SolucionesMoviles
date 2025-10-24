@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Proyecto {
   final String id;
   final String nombre;
@@ -29,7 +31,25 @@ class Proyecto {
     this.puntuacion,
   });
 
-  Map<String, dynamic> aJson() {
+  factory Proyecto.fromFirestore(Map<String, dynamic> data) {
+    return Proyecto(
+      id: data['id'],
+      nombre: data['nombre'],
+      linkGithub: data['linkGithub'],
+      archivoZip: data['archivoZip'],
+      estudianteId: data['estudianteId'],
+      nombreEstudiante: data['nombreEstudiante'],
+      correoEstudiante: data['correoEstudiante'],
+      concursoId: data['concursoId'],
+      categoriaId: data['categoriaId'],
+      fechaEnvio: (data['fechaEnvio'] as Timestamp).toDate(),
+      estado: EstadoProyecto.values.byName(data['estado']),
+      comentarios: data['comentarios'],
+      puntuacion: data['puntuacion']?.toDouble(),
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
     return {
       'id': id,
       'nombre': nombre,
@@ -40,29 +60,11 @@ class Proyecto {
       'correoEstudiante': correoEstudiante,
       'concursoId': concursoId,
       'categoriaId': categoriaId,
-      'fechaEnvio': fechaEnvio.millisecondsSinceEpoch,
+      'fechaEnvio': Timestamp.fromDate(fechaEnvio),
       'estado': estado.name,
       'comentarios': comentarios,
       'puntuacion': puntuacion,
     };
-  }
-
-  static Proyecto desdeJson(Map<String, dynamic> json) {
-    return Proyecto(
-      id: json['id'],
-      nombre: json['nombre'],
-      linkGithub: json['linkGithub'],
-      archivoZip: json['archivoZip'],
-      estudianteId: json['estudianteId'],
-      nombreEstudiante: json['nombreEstudiante'],
-      correoEstudiante: json['correoEstudiante'],
-      concursoId: json['concursoId'],
-      categoriaId: json['categoriaId'],
-      fechaEnvio: DateTime.fromMillisecondsSinceEpoch(json['fechaEnvio']),
-      estado: EstadoProyecto.values.byName(json['estado']),
-      comentarios: json['comentarios'],
-      puntuacion: json['puntuacion']?.toDouble(),
-    );
   }
 
   String get estadoTexto {
@@ -70,7 +72,7 @@ class Proyecto {
       case EstadoProyecto.enviado:
         return 'Enviado';
       case EstadoProyecto.enRevision:
-        return 'En Revision';
+        return 'En Revisión';
       case EstadoProyecto.aprobado:
         return 'Aprobado';
       case EstadoProyecto.rechazado:

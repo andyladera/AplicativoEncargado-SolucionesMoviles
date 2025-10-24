@@ -22,21 +22,23 @@ class ServicioConcursos {
     required DateTime fechaRevision,
     required DateTime fechaConfirmacionAceptados,
   }) async {
-    final servicioAuth = ServicioAutenticacion();
-    if (!servicioAuth.estaAutenticado) {
+    final administrador = ServicioAutenticacion.administradorActual;
+
+    if (administrador == null) {
+      print('Error: No se pudo obtener el administrador actual.');
       return false;
     }
 
     try {
       final nuevoConcurso = Concurso(
-        id: _firestore.collection('concursos').doc().id, // Generar ID único
+        id: _firestore.collection('concursos').doc().id,
         nombre: nombre,
         categorias: categorias,
         fechaLimiteInscripcion: fechaLimiteInscripcion,
         fechaRevision: fechaRevision,
         fechaConfirmacionAceptados: fechaConfirmacionAceptados,
         fechaCreacion: DateTime.now(),
-        administradorId: servicioAuth.administradorActual!.id,
+        administradorId: administrador.id,
       );
 
       await _concursosRef.doc(nuevoConcurso.id).set(nuevoConcurso);
@@ -48,10 +50,9 @@ class ServicioConcursos {
   }
 
   Stream<List<Concurso>> obtenerConcursosDelAdministrador() {
-    final servicioAuth = ServicioAutenticacion();
-    final adminId = servicioAuth.administradorActual?.id;
+    final adminId = ServicioAutenticacion.administradorActual?.id;
 
-    if (!servicioAuth.estaAutenticado || adminId == null) {
+    if (adminId == null) {
       return Stream.value([]);
     }
 
@@ -69,15 +70,15 @@ class ServicioConcursos {
     required DateTime fechaRevision,
     required DateTime fechaConfirmacionAceptados,
   }) async {
-    final servicioAuth = ServicioAutenticacion();
-    if (!servicioAuth.estaAutenticado) {
+    final admin = ServicioAutenticacion.administradorActual;
+    if (admin == null) {
       return false;
     }
 
     try {
       // Primero, obtenemos el concurso para asegurarnos de que pertenece al admin actual
       final doc = await _concursosRef.doc(concursoId).get();
-      if (!doc.exists || doc.data()!.administradorId != servicioAuth.administradorActual!.id) {
+      if (!doc.exists || doc.data()!.administradorId != admin.id) {
         return false; // El concurso no existe o no pertenece al administrador
       }
 
@@ -98,15 +99,15 @@ class ServicioConcursos {
   }
 
   Future<bool> eliminarConcurso(String concursoId) async {
-    final servicioAuth = ServicioAutenticacion();
-    if (!servicioAuth.estaAutenticado) {
+    final admin = ServicioAutenticacion.administradorActual;
+    if (admin == null) {
       return false;
     }
 
     try {
       // Opcional: Verificar que el concurso pertenece al admin antes de borrar
       final doc = await _concursosRef.doc(concursoId).get();
-      if (!doc.exists || doc.data()!.administradorId != servicioAuth.administradorActual!.id) {
+      if (!doc.exists || doc.data()!.administradorId != admin.id) {
         return false;
       }
 

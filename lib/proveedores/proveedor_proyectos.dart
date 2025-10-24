@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import '../modelos/proyecto.dart';
 import '../servicios/servicio_proyectos.dart';
 
 class ProveedorProyectos extends ChangeNotifier {
   final ServicioProyectos _servicioProyectos = ServicioProyectos();
+  StreamSubscription<List<Proyecto>>? _proyectosSubscription;
 
   List<Proyecto> _proyectos = [];
   List<Proyecto> get proyectos => List.unmodifiable(_proyectos);
@@ -20,55 +23,41 @@ class ProveedorProyectos extends ChangeNotifier {
   String? _concursoActual;
   String? get concursoActual => _concursoActual;
 
-  Future<void> cargarProyectosPorConcurso(String concursoId) async {
+  void escucharProyectosPorConcurso(String concursoId) {
     _cargando = true;
     _mensajeError = null;
     _concursoActual = concursoId;
     notifyListeners();
 
-    try {
-      _proyectos = await _servicioProyectos.obtenerProyectosPorConcurso(concursoId);
-      _estadisticas = _servicioProyectos.obtenerEstadisticasPorConcurso(concursoId);
+    _proyectosSubscription?.cancel();
+    _proyectosSubscription = _servicioProyectos.obtenerProyectosPorConcurso(concursoId).listen((proyectos) {
+      _proyectos = proyectos;
+      _actualizarEstadisticas();
       _cargando = false;
       notifyListeners();
-    } catch (e) {
+    }, onError: (error) {
       _mensajeError = 'Error al cargar los proyectos';
       _cargando = false;
       notifyListeners();
-    }
+    });
   }
 
-  Future<void> cargarProyectosPorCategoria(String concursoId, String categoria) async {
-    _cargando = true;
-    _mensajeError = null;
-    notifyListeners();
-
-    try {
-      _proyectos = await _servicioProyectos.obtenerProyectosPorCategoria(concursoId, categoria);
-      _cargando = false;
-      notifyListeners();
-    } catch (e) {
-      _mensajeError = 'Error al cargar los proyectos de la categoria';
-      _cargando = false;
-      notifyListeners();
+  void _actualizarEstadisticas() {
+    _estadisticas = {};
+    for (var proyecto in _proyectos) {
+      _estadisticas.update(proyecto.estado, (value) => value + 1, ifAbsent: () => 1);
     }
   }
 
   Future<bool> actualizarEstadoProyecto(String proyectoId, EstadoProyecto nuevoEstado, {String? comentarios, double? puntuacion}) async {
     try {
-      final exito = await _servicioProyectos.actualizarEstadoProyecto(
+      await _servicioProyectos.actualizarEstadoProyecto(
         proyectoId, 
         nuevoEstado, 
         comentarios: comentarios, 
         puntuacion: puntuacion
-      );
-      
-      if (exito && _concursoActual != null) {
-        // Recargar proyectos para mostrar cambios
-        await cargarProyectosPorConcurso(_concursoActual!);
-      }
-      
-      return exito;
+      );      
+      return true;
     } catch (e) {
       _mensajeError = 'Error al actualizar el estado del proyecto';
       notifyListeners();
@@ -89,7 +78,14 @@ class ProveedorProyectos extends ChangeNotifier {
     notifyListeners();
   }
 
+  @override
+  void dispose() {
+    _proyectosSubscription?.cancel();
+    super.dispose();
+  }
+
   void limpiar() {
+    _proyectosSubscription?.cancel();
     _proyectos.clear();
     _estadisticas.clear();
     _concursoActual = null;
