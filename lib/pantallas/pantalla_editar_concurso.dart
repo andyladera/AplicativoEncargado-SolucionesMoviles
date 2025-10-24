@@ -450,7 +450,7 @@ class _PantallaEditarConcursoState extends State<PantallaEditarConcurso> {
                 ],
                 Consumer<ProveedorConcursos>(
                   builder: (context, proveedor, child) {
-                    if (proveedor.mensajeError != null) {
+                    if (proveedor.estado == EstadoCarga.error) {
                       return Container(
                         padding: const EdgeInsets.all(12),
                         margin: const EdgeInsets.only(bottom: 16),
@@ -465,7 +465,7 @@ class _PantallaEditarConcursoState extends State<PantallaEditarConcurso> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                proveedor.mensajeError!,
+                                'Ocurrió un error al actualizar el concurso.',
                                 style: TextStyle(color: Colors.red[700]),
                               ),
                             ),
@@ -478,8 +478,9 @@ class _PantallaEditarConcursoState extends State<PantallaEditarConcurso> {
                 ),
                 Consumer<ProveedorConcursos>(
                   builder: (context, proveedor, child) {
+                    final cargando = proveedor.estado == EstadoCarga.cargando;
                     return ElevatedButton(
-                      onPressed: proveedor.cargando ? null : _actualizarConcurso,
+                      onPressed: cargando ? null : _actualizarConcurso,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue[700],
                         foregroundColor: Colors.white,
@@ -488,7 +489,7 @@ class _PantallaEditarConcursoState extends State<PantallaEditarConcurso> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: proveedor.cargando
+                      child: cargando
                           ? const SizedBox(
                               height: 20,
                               width: 20,

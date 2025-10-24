@@ -2,25 +2,19 @@ class Categoria {
   final String nombre;
   final String rangoCiclos;
 
-  Categoria({
-    required this.nombre,
-    required this.rangoCiclos,
-  });
+  Categoria({required this.nombre, required this.rangoCiclos});
 
-  Map<String, dynamic> aJson() {
+  factory Categoria.fromMap(Map<String, dynamic> data) {
+    return Categoria(
+      nombre: data['nombre'] as String,
+      rangoCiclos: data['rangoCiclos'] as String,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
     return {
       'nombre': nombre,
       'rangoCiclos': rangoCiclos,
     };
   }
-
-  static Categoria desdeJson(Map<String, dynamic> json) {
-    return Categoria(
-      nombre: json['nombre'],
-      rangoCiclos: json['rangoCiclos'],
-    );
-  }
-
-  @override
-  String toString() => '$nombre: $rangoCiclos';
 }

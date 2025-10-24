@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'categoria.dart';
 
 class Concurso {
@@ -21,33 +23,37 @@ class Concurso {
     required this.administradorId,
   });
 
-  Map<String, dynamic> aJson() {
+  factory Concurso.fromFirestore(Map<String, dynamic> data) {
+    return Concurso(
+      id: data['id'] as String,
+      nombre: data['nombre'] as String,
+      categorias: (data['categorias'] as List<dynamic>)
+          .map((e) => Categoria.fromMap(e as Map<String, dynamic>))
+          .toList(),
+      fechaLimiteInscripcion:
+          (data['fechaLimiteInscripcion'] as Timestamp).toDate(),
+      fechaRevision: (data['fechaRevision'] as Timestamp).toDate(),
+      fechaConfirmacionAceptados:
+          (data['fechaConfirmacionAceptados'] as Timestamp).toDate(),
+      fechaCreacion: (data['fechaCreacion'] as Timestamp).toDate(),
+      administradorId: data['administradorId'] as String,
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
     return {
       'id': id,
       'nombre': nombre,
-      'categorias': categorias.map((categoria) => categoria.aJson()).toList(),
-      'fechaLimiteInscripcion': fechaLimiteInscripcion.millisecondsSinceEpoch,
-      'fechaRevision': fechaRevision.millisecondsSinceEpoch,
-      'fechaConfirmacionAceptados': fechaConfirmacionAceptados.millisecondsSinceEpoch,
-      'fechaCreacion': fechaCreacion.millisecondsSinceEpoch,
+      'categorias': categorias.map((e) => e.toMap()).toList(),
+      'fechaLimiteInscripcion': Timestamp.fromDate(fechaLimiteInscripcion),
+      'fechaRevision': Timestamp.fromDate(fechaRevision),
+      'fechaConfirmacionAceptados':
+          Timestamp.fromDate(fechaConfirmacionAceptados),
+      'fechaCreacion': Timestamp.fromDate(fechaCreacion),
       'administradorId': administradorId,
     };
   }
 
-  static Concurso desdeJson(Map<String, dynamic> json) {
-    return Concurso(
-      id: json['id'],
-      nombre: json['nombre'],
-      categorias: (json['categorias'] as List)
-          .map((categoria) => Categoria.desdeJson(categoria))
-          .toList(),
-      fechaLimiteInscripcion: DateTime.fromMillisecondsSinceEpoch(json['fechaLimiteInscripcion']),
-      fechaRevision: DateTime.fromMillisecondsSinceEpoch(json['fechaRevision']),
-      fechaConfirmacionAceptados: DateTime.fromMillisecondsSinceEpoch(json['fechaConfirmacionAceptados']),
-      fechaCreacion: DateTime.fromMillisecondsSinceEpoch(json['fechaCreacion']),
-      administradorId: json['administradorId'],
-    );
-  }
 
   bool get estaVigente {
     return DateTime.now().isBefore(fechaLimiteInscripcion);

@@ -21,14 +21,7 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
     const PantallaCrearConcurso(),
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    // Cargar concursos al iniciar
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<ProveedorConcursos>(context, listen: false).cargarConcursos();
-    });
-  }
+
 
   void _cerrarSesion() {
     showDialog(

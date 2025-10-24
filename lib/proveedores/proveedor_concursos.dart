@@ -1,19 +1,43 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../modelos/concurso.dart';
 import '../modelos/categoria.dart';
 import '../servicios/servicio_concursos.dart';
 
+enum EstadoCarga {
+  cargando,
+  listo,
+  error,
+}
+
 class ProveedorConcursos extends ChangeNotifier {
   final ServicioConcursos _servicioConcursos = ServicioConcursos();
-
   List<Concurso> _concursos = [];
-  List<Concurso> get concursos => List.unmodifiable(_concursos);
+  EstadoCarga _estado = EstadoCarga.cargando;
+  StreamSubscription? _concursosSubscription;
 
-  bool _cargando = false;
-  bool get cargando => _cargando;
+  List<Concurso> get concursos => _concursos;
+  EstadoCarga get estado => _estado;
 
-  String? _mensajeError;
-  String? get mensajeError => _mensajeError;
+  ProveedorConcursos() {
+    _escucharConcursos();
+  }
+
+  void _escucharConcursos() {
+    _estado = EstadoCarga.cargando;
+    notifyListeners();
+
+    _concursosSubscription?.cancel();
+    _concursosSubscription = _servicioConcursos.obtenerConcursosDelAdministrador().listen((concursos) {
+      _concursos = concursos;
+      _estado = EstadoCarga.listo;
+      notifyListeners();
+    }, onError: (error) {
+      _estado = EstadoCarga.error;
+      notifyListeners();
+      print("Error al escuchar concursos: $error");
+    });
+  }
 
   Future<bool> crearConcurso({
     required String nombre,
@@ -22,50 +46,15 @@ class ProveedorConcursos extends ChangeNotifier {
     required DateTime fechaRevision,
     required DateTime fechaConfirmacionAceptados,
   }) async {
-    _cargando = true;
-    _mensajeError = null;
-    notifyListeners();
-
-    try {
-      final exito = await _servicioConcursos.crearConcurso(
-        nombre: nombre,
-        categorias: categorias,
-        fechaLimiteInscripcion: fechaLimiteInscripcion,
-        fechaRevision: fechaRevision,
-        fechaConfirmacionAceptados: fechaConfirmacionAceptados,
-      );
-
-      if (exito) {
-        await cargarConcursos();
-      } else {
-        _mensajeError = 'Error al crear el concurso';
-      }
-
-      _cargando = false;
-      notifyListeners();
-      return exito;
-    } catch (e) {
-      _mensajeError = 'Error al crear el concurso';
-      _cargando = false;
-      notifyListeners();
-      return false;
-    }
-  }
-
-  Future<void> cargarConcursos() async {
-    _cargando = true;
-    _mensajeError = null;
-    notifyListeners();
-
-    try {
-      _concursos = await _servicioConcursos.obtenerConcursosDelAdministrador();
-      _cargando = false;
-      notifyListeners();
-    } catch (e) {
-      _mensajeError = 'Error al cargar los concursos';
-      _cargando = false;
-      notifyListeners();
-    }
+    final resultado = await _servicioConcursos.crearConcurso(
+      nombre: nombre,
+      categorias: categorias,
+      fechaLimiteInscripcion: fechaLimiteInscripcion,
+      fechaRevision: fechaRevision,
+      fechaConfirmacionAceptados: fechaConfirmacionAceptados,
+    );
+    // No es necesario notificar, el stream lo hará automáticamente
+    return resultado;
   }
 
   Future<bool> actualizarConcurso({
@@ -76,55 +65,24 @@ class ProveedorConcursos extends ChangeNotifier {
     required DateTime fechaRevision,
     required DateTime fechaConfirmacionAceptados,
   }) async {
-    _cargando = true;
-    _mensajeError = null;
-    notifyListeners();
-
-    try {
-      final exito = await _servicioConcursos.actualizarConcurso(
-        concursoId: concursoId,
-        nombre: nombre,
-        categorias: categorias,
-        fechaLimiteInscripcion: fechaLimiteInscripcion,
-        fechaRevision: fechaRevision,
-        fechaConfirmacionAceptados: fechaConfirmacionAceptados,
-      );
-
-      if (exito) {
-        await cargarConcursos();
-      } else {
-        _mensajeError = 'Error al actualizar el concurso';
-      }
-
-      _cargando = false;
-      notifyListeners();
-      return exito;
-    } catch (e) {
-      _mensajeError = 'Error al actualizar el concurso';
-      _cargando = false;
-      notifyListeners();
-      return false;
-    }
+    return await _servicioConcursos.actualizarConcurso(
+      concursoId: concursoId,
+      nombre: nombre,
+      categorias: categorias,
+      fechaLimiteInscripcion: fechaLimiteInscripcion,
+      fechaRevision: fechaRevision,
+      fechaConfirmacionAceptados: fechaConfirmacionAceptados,
+    );
   }
 
-  Future<bool> eliminarConcurso(String concursoId) async {
-    try {
-      final exito = await _servicioConcursos.eliminarConcurso(concursoId);
-      
-      if (exito) {
-        await cargarConcursos();
-      }
-      
-      return exito;
-    } catch (e) {
-      _mensajeError = 'Error al eliminar el concurso';
-      notifyListeners();
-      return false;
-    }
+  Future<void> eliminarConcurso(String concursoId) async {
+    await _servicioConcursos.eliminarConcurso(concursoId);
+    // El stream actualizará la lista
   }
 
-  void limpiarError() {
-    _mensajeError = null;
-    notifyListeners();
+  @override
+  void dispose() {
+    _concursosSubscription?.cancel();
+    super.dispose();
   }
 }

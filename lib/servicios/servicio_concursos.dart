@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../modelos/concurso.dart';
 import '../modelos/categoria.dart';
 import 'servicio_autenticacion.dart';
@@ -7,26 +8,12 @@ class ServicioConcursos {
   factory ServicioConcursos() => _instancia;
   ServicioConcursos._interno();
 
-  // Lista temporal de concursos (más adelante se conectará a la BD)
-  final List<Concurso> _concursos = [
-    // Concurso de ejemplo para mostrar funcionalidades
-    Concurso(
-      id: 'ejemplo-001',
-      nombre: 'Concurso de Proyectos EPIS 2024',
-      categorias: [
-        Categoria(nombre: 'Categoria Junior', rangoCiclos: 'I a III ciclo'),
-        Categoria(nombre: 'Categoria Intermedio', rangoCiclos: 'IV a VI ciclo'),
-        Categoria(nombre: 'Categoria Senior', rangoCiclos: 'VII a X ciclo'),
-      ],
-      fechaLimiteInscripcion: DateTime.now().add(const Duration(days: 30)),
-      fechaRevision: DateTime.now().add(const Duration(days: 45)),
-      fechaConfirmacionAceptados: DateTime.now().add(const Duration(days: 60)),
-      fechaCreacion: DateTime.now().subtract(const Duration(days: 5)),
-      administradorId: 'admin-001',
-    ),
-  ];
-
-  List<Concurso> get concursos => List.unmodifiable(_concursos);
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  late final CollectionReference<Concurso> _concursosRef =
+      _firestore.collection('concursos').withConverter<Concurso>(
+            fromFirestore: (snapshots, _) => Concurso.fromFirestore(snapshots.data()!),
+            toFirestore: (concurso, _) => concurso.toFirestore(),
+          );
 
   Future<bool> crearConcurso({
     required String nombre,
@@ -36,48 +23,42 @@ class ServicioConcursos {
     required DateTime fechaConfirmacionAceptados,
   }) async {
     final servicioAuth = ServicioAutenticacion();
-    
     if (!servicioAuth.estaAutenticado) {
       return false;
     }
 
-    // Simular delay de red
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final nuevoConcurso = Concurso(
+        id: _firestore.collection('concursos').doc().id, // Generar ID único
+        nombre: nombre,
+        categorias: categorias,
+        fechaLimiteInscripcion: fechaLimiteInscripcion,
+        fechaRevision: fechaRevision,
+        fechaConfirmacionAceptados: fechaConfirmacionAceptados,
+        fechaCreacion: DateTime.now(),
+        administradorId: servicioAuth.administradorActual!.id,
+      );
 
-    final nuevoConcurso = Concurso(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      nombre: nombre,
-      categorias: categorias,
-      fechaLimiteInscripcion: fechaLimiteInscripcion,
-      fechaRevision: fechaRevision,
-      fechaConfirmacionAceptados: fechaConfirmacionAceptados,
-      fechaCreacion: DateTime.now(),
-      administradorId: servicioAuth.administradorActual!.id,
-    );
-
-    _concursos.add(nuevoConcurso);
-    return true;
+      await _concursosRef.doc(nuevoConcurso.id).set(nuevoConcurso);
+      return true;
+    } catch (e) {
+      print('Error al crear concurso: $e');
+      return false;
+    }
   }
 
-  Future<List<Concurso>> obtenerConcursos() async {
-    // Simular delay de red
-    await Future.delayed(const Duration(milliseconds: 500));
-    return List.from(_concursos);
-  }
-
-  Future<List<Concurso>> obtenerConcursosDelAdministrador() async {
+  Stream<List<Concurso>> obtenerConcursosDelAdministrador() {
     final servicioAuth = ServicioAutenticacion();
-    
-    if (!servicioAuth.estaAutenticado) {
-      return [];
+    final adminId = servicioAuth.administradorActual?.id;
+
+    if (!servicioAuth.estaAutenticado || adminId == null) {
+      return Stream.value([]);
     }
 
-    // Simular delay de red
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    return _concursos
-        .where((concurso) => concurso.administradorId == servicioAuth.administradorActual!.id)
-        .toList();
+    return _concursosRef
+        .where('administradorId', isEqualTo: adminId)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
   }
 
   Future<bool> actualizarConcurso({
@@ -89,55 +70,51 @@ class ServicioConcursos {
     required DateTime fechaConfirmacionAceptados,
   }) async {
     final servicioAuth = ServicioAutenticacion();
-    
     if (!servicioAuth.estaAutenticado) {
       return false;
     }
 
-    // Simular delay de red
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      // Primero, obtenemos el concurso para asegurarnos de que pertenece al admin actual
+      final doc = await _concursosRef.doc(concursoId).get();
+      if (!doc.exists || doc.data()!.administradorId != servicioAuth.administradorActual!.id) {
+        return false; // El concurso no existe o no pertenece al administrador
+      }
 
-    final indice = _concursos.indexWhere((concurso) => 
-        concurso.id == concursoId && 
-        concurso.administradorId == servicioAuth.administradorActual!.id);
+      final concursoActualizado = {
+        'nombre': nombre,
+        'categorias': categorias.map((c) => c.toMap()).toList(),
+        'fechaLimiteInscripcion': Timestamp.fromDate(fechaLimiteInscripcion),
+        'fechaRevision': Timestamp.fromDate(fechaRevision),
+        'fechaConfirmacionAceptados': Timestamp.fromDate(fechaConfirmacionAceptados),
+      };
 
-    if (indice != -1) {
-      final concursoOriginal = _concursos[indice];
-      _concursos[indice] = Concurso(
-        id: concursoOriginal.id,
-        nombre: nombre,
-        categorias: categorias,
-        fechaLimiteInscripcion: fechaLimiteInscripcion,
-        fechaRevision: fechaRevision,
-        fechaConfirmacionAceptados: fechaConfirmacionAceptados,
-        fechaCreacion: concursoOriginal.fechaCreacion,
-        administradorId: concursoOriginal.administradorId,
-      );
+      await _concursosRef.doc(concursoId).update(concursoActualizado);
       return true;
+    } catch (e) {
+      print('Error al actualizar concurso: $e');
+      return false;
     }
-
-    return false;
   }
 
   Future<bool> eliminarConcurso(String concursoId) async {
     final servicioAuth = ServicioAutenticacion();
-    
     if (!servicioAuth.estaAutenticado) {
       return false;
     }
 
-    // Simular delay de red
-    await Future.delayed(const Duration(milliseconds: 500));
+    try {
+      // Opcional: Verificar que el concurso pertenece al admin antes de borrar
+      final doc = await _concursosRef.doc(concursoId).get();
+      if (!doc.exists || doc.data()!.administradorId != servicioAuth.administradorActual!.id) {
+        return false;
+      }
 
-    final indice = _concursos.indexWhere((concurso) => 
-        concurso.id == concursoId && 
-        concurso.administradorId == servicioAuth.administradorActual!.id);
-
-    if (indice != -1) {
-      _concursos.removeAt(indice);
+      await _concursosRef.doc(concursoId).delete();
       return true;
+    } catch (e) {
+      print('Error al eliminar concurso: $e');
+      return false;
     }
-
-    return false;
   }
 }
