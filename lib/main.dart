@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'proveedores/proveedor_autenticacion.dart';
@@ -6,7 +7,9 @@ import 'proveedores/proveedor_proyectos.dart';
 import 'pantallas/pantalla_inicio_sesion.dart';
 import 'pantallas/pantalla_principal.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const AdminProyectosApp());
 }
 
