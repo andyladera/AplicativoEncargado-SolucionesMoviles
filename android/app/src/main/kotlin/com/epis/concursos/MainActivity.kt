@@ -1,4 +1,4 @@
-package com.example.proyectos_admin
+package com.epis.concursos
 
 import io.flutter.embedding.android.FlutterActivity
 

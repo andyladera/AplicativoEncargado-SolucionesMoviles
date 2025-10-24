@@ -1,24 +1,13 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../modelos/administrador.dart';
 
 class ServicioAutenticacion {
-  static final ServicioAutenticacion _instancia = ServicioAutenticacion._interno();
-  factory ServicioAutenticacion() => _instancia;
-  ServicioAutenticacion._interno();
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Administrador? _administradorActual;
   Administrador? get administradorActual => _administradorActual;
-
-  // Lista temporal de administradores registrados (más adelante se conectará a la BD)
-  final List<Administrador> _administradoresRegistrados = [
-    // Usuario administrador predeterminado para pruebas
-    Administrador(
-      id: 'admin-001',
-      nombres: 'Administrador',
-      apellidos: 'EPIS',
-      correo: 'admin@gmail.com',
-      numeroTelefonico: '999999999',
-    ),
-  ];
 
   Future<bool> registrarAdministrador({
     required String nombres,
@@ -27,53 +16,72 @@ class ServicioAutenticacion {
     required String numeroTelefonico,
     required String contrasena,
   }) async {
-    // Simular delay de red
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      // Crear usuario en Firebase Authentication
+      final credenciales = await _firebaseAuth.createUserWithEmailAndPassword(
+        email: correo,
+        password: contrasena,
+      );
 
-    // Verificar si el correo ya existe
-    if (_administradoresRegistrados.any((admin) => admin.correo == correo)) {
+      if (credenciales.user != null) {
+        // Guardar datos adicionales en Firestore
+        final nuevoAdmin = Administrador(
+          id: credenciales.user!.uid,
+          nombres: nombres,
+          apellidos: apellidos,
+          correo: correo,
+          numeroTelefonico: numeroTelefonico,
+        );
+        await _firestore
+            .collection('administradores')
+            .doc(credenciales.user!.uid)
+            .set(nuevoAdmin.aJson());
+        return true;
+      }
+      return false;
+    } on FirebaseAuthException catch (e) {
+      // Manejar errores, por ejemplo, si el correo ya existe
+      print('Error en el registro: ${e.message}');
+      return false;
+    } on FirebaseAuthException catch (e) {
+      // Manejar errores, por ejemplo, si el correo ya existe
+      print('Error en el registro: ${e.message}');
       return false;
     }
-
-    final nuevoAdmin = Administrador(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      nombres: nombres,
-      apellidos: apellidos,
-      correo: correo,
-      numeroTelefonico: numeroTelefonico,
-    );
-
-    _administradoresRegistrados.add(nuevoAdmin);
-    return true;
   }
 
   Future<bool> iniciarSesion({
     required String correo,
     required String contrasena,
   }) async {
-    // Simular delay de red
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final credenciales = await _firebaseAuth.signInWithEmailAndPassword(
+        email: correo,
+        password: contrasena,
+      );
 
-    final admin = _administradoresRegistrados
-        .where((admin) => admin.correo == correo)
-        .firstOrNull;
-
-    if (admin != null) {
-      // Para el usuario de prueba admin@gmail.com, verificar contraseña "admin"
-      if (correo == 'admin@gmail.com' && contrasena != 'admin') {
-        return false;
+      if (credenciales.user != null) {
+        // Recuperar datos adicionales de Firestore
+        final doc = await _firestore
+            .collection('administradores')
+            .doc(credenciales.user!.uid)
+            .get();
+        if (doc.exists) {
+          _administradorActual = Administrador.desdeJson(doc.data()!);
+          return true;
+        }
       }
-      // Para otros usuarios, por simplicidad aceptamos cualquier contraseña en esta versión de prueba
-      _administradorActual = admin;
-      return true;
+      return false;
+    } on FirebaseAuthException catch (e) {
+      print('Error en el inicio de sesión: ${e.message}');
+      return false;
     }
-
-    return false;
   }
 
-  void cerrarSesion() {
+  Future<void> cerrarSesion() async {
+    await _firebaseAuth.signOut();
     _administradorActual = null;
   }
 
-  bool get estaAutenticado => _administradorActual != null;
+  bool get estaAutenticado => _firebaseAuth.currentUser != null;
 }
